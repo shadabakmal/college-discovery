@@ -2,12 +2,13 @@
   "name": "next-frontend",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
+ "scripts": {
+  "postinstall": "prisma generate",
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "eslint"
+},
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@react-oauth/google": "^0.13.5",
