@@ -37,9 +37,9 @@ export async function POST(request: Request) {
 
     // 4. Return success
     return NextResponse.json(
-      { message: "Google login successful", user: { name: user.name, email: user.email } },
-      { status: 200 }
-    );
+  { message: "Google login successful", user: { id: user.id, name: user.name, email: user.email } },
+  { status: 200 }
+);
 
   } catch (error) {
     console.error("Google Auth Error:", error);
