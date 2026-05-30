@@ -1,156 +1,119 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, X, ChevronDown, LogOut, Heart } from "lucide-react"; // ✅ removed MessageCircleQuestion
+import { Menu, X, ChevronDown, LogOut, Heart, Search } from "lucide-react";
 
-function UserMenu() {
-  const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [savedCount, setSavedCount] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
+// ... keep your existing UserMenu component the same ...
 
-  // ✅ Pass userId in the URL
-  const fetchSavedCount = async (userId: string) => {
-    try {
-      const res = await fetch(`/api/user/saved-colleges?userId=${userId}`);
-      const data = await res.json();
-      setSavedCount(data.data?.length || 0);
-    } catch {
-      setSavedCount(0);
-    }
-  };
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
-      if (userData.id) fetchSavedCount(userData.id); // ✅ pass userId
-    }
-    setIsLoading(false);
-
-    const handleSavedChange = () => {
-      const u = localStorage.getItem("user");
-      if (u) {
-        const userData = JSON.parse(u);
-        if (userData.id) fetchSavedCount(userData.id); // ✅ pass userId
-      }
-    };
-    window.addEventListener("savedCollegesChanged", handleSavedChange);
-    return () => window.removeEventListener("savedCollegesChanged", handleSavedChange);
-  }, []);
-
-  // ✅ Re-fetch when dropdown opens
-  useEffect(() => {
-    if (open && user?.id) fetchSavedCount(user.id); // ✅ pass userId
-  }, [open]);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
-
-  if (isLoading) return <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse ml-2" />;
-  if (!user) return (
-    <Link href="/login" className="ml-2 px-6 py-2 text-sm font-semibold text-white bg-[#ff7a3b] rounded-full hover:bg-orange-500 transition-all">
-      Login
-    </Link>
-  );
-
-  const firstName = user.name ? user.name.split(" ")[0] : "User";
-  const initial = firstName.charAt(0).toUpperCase();
+export default function Navbar() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-[#fff5f0] transition-all"
-      >
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold bg-[#ff7a3b]">
-          {initial}
-        </div>
-        <ChevronDown className={`w-4 h-4 text-[#ff7a3b] transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-100 py-3 z-50">
-          <div className="px-4 py-2 bg-gray-50 mx-3 rounded-lg mb-2 text-sm font-medium text-gray-800">
-            Hi {firstName} 👋
-          </div>
-          <Link
-            href="/dashboard"
-            onClick={() => setOpen(false)}
-            className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            <div className="flex items-center gap-3">
-              <Heart className="w-4 h-4 text-gray-500" /> Saved Colleges
-            </div>
-            <span className="bg-gray-100 px-2 py-0.5 rounded-full text-[10px] font-bold">
-              {savedCount}
+    // ✅ Remove sticky, add proper background and border
+    <header className="bg-white border-b-2 border-gray-200 shadow-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-4">
+          
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <span className="font-bold text-xl">
+              <span className="text-gray-900">COLLEGE</span>
+              <span className="text-orange-500">RADAR</span>
             </span>
           </Link>
-          {/* ✅ My QNA removed */}
-          <div className="border-t border-gray-100 my-1" />
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-orange-600 hover:bg-red-50"
-          >
-            <LogOut className="w-4 h-4" /> Logout
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
-// --- MAIN NAVBAR ---
-export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const router = useRouter();
-
-  return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          <Link href="/" className="font-display text-2xl font-black text-[#2e266d]">
-            COLLEGE<span className="font-light text-gray-500">RADAR</span>
-          </Link>
-
+          {/* ✅ Visible Search Bar */}
           <form
-            onSubmit={(e) => { e.preventDefault(); router.push(`/colleges?query=${searchQuery}`); }}
-            className="hidden md:flex flex-1 max-w-xl mx-8"
+            onSubmit={(e) => {
+              e.preventDefault();
+              router.push(`/colleges?query=${searchQuery}`);
+            }}
+            className="flex-1 max-w-xl"
           >
-            <input
-              type="text"
-              placeholder="Search Colleges..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-5 py-3 bg-gray-100 rounded-full text-sm outline-none focus:ring-2 focus:ring-orange-500"
-            />
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search colleges, courses, cities..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-300 bg-gray-50 text-sm text-gray-900 placeholder-gray-500 outline-none focus:border-orange-400 focus:bg-white transition-all"
+              />
+            </div>
           </form>
 
-          <div className="flex items-center">
-            <div className="hidden md:block"><UserMenu /></div>
-            <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X /> : <Menu />}
-            </button>
-          </div>
+          {/* Nav Links */}
+          <nav className="hidden md:flex items-center gap-1">
+            {[
+              { label: "Colleges", href: "/colleges" },
+              { label: "Compare", href: "/compare" },
+              { label: "Predictor", href: "/predictor" },
+              { label: "Discussions", href: "/discussions" },
+            ].map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* User Menu */}
+          <UserMenu />
+
+          {/* Mobile toggle */}
+          <button
+            className="md:hidden p-2 rounded-lg text-gray-500 border border-gray-200"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-white border-b p-4"><UserMenu /></div>
+        <div className="md:hidden border-t border-gray-200 bg-white px-4 pb-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              router.push(`/colleges?query=${searchQuery}`);
+              setMobileOpen(false);
+            }}
+            className="pt-3 pb-2"
+          >
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search colleges..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-300 bg-gray-50 text-sm outline-none focus:border-orange-400"
+              />
+            </div>
+          </form>
+          {[
+            { label: "Colleges", href: "/colleges" },
+            { label: "Compare", href: "/compare" },
+            { label: "Predictor", href: "/predictor" },
+            { label: "Discussions", href: "/discussions" },
+          ].map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="block py-3 text-sm font-medium border-b border-gray-100 text-gray-700 hover:text-orange-500"
+              onClick={() => setMobileOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
       )}
     </header>
   );
