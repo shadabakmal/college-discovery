@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Defined at the top so it is available to User and College models
+model SavedCollege {
+  id        String   @id @default(cuid())
+  userId    String
+  collegeId String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  college   College  @relation(fields: [collegeId], references: [id])
+
+  @@unique([userId, collegeId]) // Ensures a user cannot save the same college twice
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  savedColleges SavedCollege[]
+}
+
+model College {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  location      String
+  type          String
+  established   Int
+  naacGrade     String?
+  ranking       Int?
+  rankingBody   String?
+  imageUrl      String?
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  placementRate Float?
+  avgCtc        Float?
+  
+  overview      String?  
+  topRecruiters String[] 
+  websiteUrl    String?  
+  
+  courses       Course[]
+  reviews       Review[] 
+  cutoffs       Cutoff[]
+  savedColleges SavedCollege[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  author    String
+  rating    Float
+  comment   String
+  collegeId String
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Course {
+  id           String  @id @default(cuid())
+  name         String
+  stream       String
+  duration     Int
+  firstYearFee Float
+  collegeId    String
+  college      College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+}
+
+model Cutoff {
+  id          String   @id @default(cuid())
+  exam        String
+  category    String
+  courseName  String
+  openingRank Int
+  closingRank Int
+  year        Int      @default(2023)
+
+  collegeId   String
+  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@index([exam, category, closingRank])
+}
+
+model Discussion {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  author    String   @default("Anonymous Student")
+  tags      String[]
+  votes     Int      @default(0)
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  answers   Answer[]
+}
+
+model Answer {
+  id           String     @id @default(cuid())
+  body         String
+  author       String     @default("Anonymous Student")
+  votes        Int        @default(0)
+  isAccepted   Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+}
