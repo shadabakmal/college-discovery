@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: "Find your dream college with confidence.",
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/falcon.svg', type: 'image/svg+xml' },
     ],
   },
 };
