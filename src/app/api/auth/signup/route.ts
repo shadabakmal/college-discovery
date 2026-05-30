@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { name, email, password } = body;
 
-    // 1. Validate input
     if (!name || !email || !password) {
       return NextResponse.json(
         { message: "Name, email, and password are required" },
@@ -14,7 +14,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Check if a user with this email already exists
+    if (password.length < 6) {
+      return NextResponse.json(
+        { message: "Password must be at least 6 characters" },
+        { status: 400 }
+      );
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -26,13 +32,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Save the new user to the database
-    // NOTE: Passwords should be hashed in production!
+    // ✅ Hash password before saving
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
-        password,
+        password: hashedPassword, // ✅ save hashed
       },
     });
 
