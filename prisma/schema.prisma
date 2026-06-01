@@ -13,26 +13,27 @@ model SavedCollege {
   userId    String
   collegeId String
   createdAt DateTime @default(now())
-  
-  user      User     @relation(fields: [userId], references: [id])
-  college   College  @relation(fields: [collegeId], references: [id])
+
+  user    User    @relation(fields: [userId], references: [id])
+  college College @relation(fields: [collegeId], references: [id])
 
   @@unique([userId, collegeId]) // Ensures a user cannot save the same college twice
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  password      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  savedColleges SavedCollege[]
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  password         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  savedColleges    SavedCollege[]
+  savedComparisons SavedComparison[]
 }
 
 model College {
-  id            String   @id @default(cuid())
-  name          String   @unique
+  id            String  @id @default(cuid())
+  name          String  @unique
   location      String
   type          String
   established   Int
@@ -40,22 +41,22 @@ model College {
   ranking       Int?
   rankingBody   String?
   imageUrl      String?
-  rating        Float    @default(0)
-  reviewCount   Int      @default(0)
+  rating        Float   @default(0)
+  reviewCount   Int     @default(0)
   placementRate Float?
   avgCtc        Float?
-  
-  overview      String?  
-  topRecruiters String[] 
-  websiteUrl    String?  
-  
+
+  overview      String?
+  topRecruiters String[]
+  websiteUrl    String?
+
   courses       Course[]
-  reviews       Review[] 
+  reviews       Review[]
   cutoffs       Cutoff[]
   savedColleges SavedCollege[]
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Review {
@@ -79,16 +80,16 @@ model Course {
 }
 
 model Cutoff {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   exam        String
   category    String
   courseName  String
   openingRank Int
   closingRank Int
-  year        Int      @default(2023)
+  year        Int    @default(2023)
 
-  collegeId   String
-  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  collegeId String
+  college   College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
 
   @@index([exam, category, closingRank])
 }
@@ -103,17 +104,30 @@ model Discussion {
   views     Int      @default(0)
   createdAt DateTime @default(now())
 
-  answers   Answer[]
+  answers Answer[]
 }
 
 model Answer {
-  id           String     @id @default(cuid())
-  body         String
-  author       String     @default("Anonymous Student")
-  votes        Int        @default(0)
-  isAccepted   Boolean    @default(false)
-  createdAt    DateTime   @default(now())
+  id         String   @id @default(cuid())
+  body       String
+  author     String   @default("Anonymous Student")
+  votes      Int      @default(0)
+  isAccepted Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   discussionId String
   discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+}
+
+// Saved comparisons (user-named groups of college ids)
+model SavedComparison {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  collegeIds String[]
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
