@@ -81,7 +81,7 @@ export default function DiscussionDetailPage({
     if (votingAnswerId) return;
     setVotingAnswerId(answerId);
     try {
-      const res = await fetch(`/api/answers/${answerId}/vote`, {
+      const res = await fetch(`/api/discussions/${threadId}/answers/${answerId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
