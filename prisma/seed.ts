@@ -11,7 +11,7 @@ const collegesData = [
     naacGrade: 'A',
     ranking: 15,
     rankingBody: 'NIRF',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Main_Building_IIT_ISM_Dhanbad.jpg',
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d1/Heritage_Building_at_IIT_Dhanbad_1.jpg',
     websiteUrl: 'https://www.iitism.ac.in/',
     rating: 4.6,
     reviewCount: 3200,
