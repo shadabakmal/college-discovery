@@ -50,21 +50,30 @@ const cutoffData = [
 
 async function main() {
   console.log('🚀 Starting to seed strict cutoffs for existing colleges...');
-  
-  // Wipe old cutoff data to prevent duplicates
-  await prisma.cutoff.deleteMany();
 
   let successCount = 0;
 
   for (const data of cutoffData) {
-    // Exact match lookup since we are using your exact seed names
     const college = await prisma.college.findUnique({
       where: { name: data.collegeName }
     });
 
     if (college) {
-      await prisma.cutoff.create({
-        data: {
+      await prisma.cutoff.upsert({
+        where: {
+          collegeId_exam_courseName_category_year: {
+            collegeId: college.id,
+            exam: data.exam,
+            courseName: data.courseName,
+            category: data.category,
+            year: 2023
+          }
+        },
+        update: {
+          openingRank: data.openingRank,
+          closingRank: data.closingRank
+        },
+        create: {
           exam: data.exam,
           category: data.category,
           courseName: data.courseName,
@@ -80,8 +89,8 @@ async function main() {
       console.log(`⚠️ FAILED: Could not find "${data.collegeName}" in database.`);
     }
   }
-  
-  console.log(`\n🎉 Seeding Complete! Added ${successCount} cutoffs.`);
+
+  console.log(`\n🎉 Seeding Complete! Processed ${successCount} cutoffs.`);
 }
 
 main()
