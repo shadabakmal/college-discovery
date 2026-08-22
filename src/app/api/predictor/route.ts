@@ -15,7 +15,6 @@ export async function GET(request: Request) {
   const userRank = parseInt(rankParam);
 
   try {
-    // Fetch all cutoff records matching exam and category across historical years
     const allCutoffs = await prisma.cutoff.findMany({
       where: {
         exam: exam,
@@ -34,7 +33,6 @@ export async function GET(request: Request) {
       },
     });
 
-    // Group cutoffs by collegeId + courseName
     const grouped = new Map<string, { college: any; courseName: string; history: CutoffHistoryItem[] }>();
 
     for (const record of allCutoffs) {
@@ -53,13 +51,12 @@ export async function GET(request: Request) {
       });
     }
 
-    // Run 8-Phase AI WLS Model Prediction for each option
     const predictions = [];
 
     for (const [_, item] of grouped) {
-      const aiResult = calculateAIPrediction(userRank, item.history, 2025);
+      // Forecast 2027 Admission Cycle using 4-Year Historical Data (2023-2026)
+      const aiResult = calculateAIPrediction(userRank, item.history, 2027);
 
-      // Filter options with minimum admission probability threshold (>= 3%)
       if (aiResult.admissionProbability >= 3) {
         const reviews = item.college.reviews || [];
         const totalReviews = reviews.length;
@@ -95,7 +92,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // Sort predictions by admission probability descending
     predictions.sort((a, b) => b.aiPrediction.admissionProbability - a.aiPrediction.admissionProbability);
 
     return NextResponse.json({ data: predictions.slice(0, 30) });

@@ -17,10 +17,6 @@ export interface AIPredictionResult {
   historicalCutoffs: { year: number; closingRank: number }[];
 }
 
-/**
- * Standard Error Function erf(x) approximation (Abramowitz and Stegun)
- * Used for Gaussian Error Distribution fallback
- */
 export function errorFunction(x: number): number {
   const sign = x < 0 ? -1 : 1;
   const absX = Math.abs(x);
@@ -38,16 +34,10 @@ export function errorFunction(x: number): number {
   return sign * y;
 }
 
-/**
- * Standard Normal Cumulative Distribution Function (Gaussian CDF)
- */
 export function normalCDF(z: number): number {
   return 0.5 * (1 + errorFunction(z / Math.SQRT2));
 }
 
-/**
- * Validate and sanitize cutoff history dataset
- */
 export function validateAndSanitizeData(history: CutoffHistoryItem[]): CutoffHistoryItem[] {
   if (!history || history.length === 0) return [];
 
@@ -62,7 +52,6 @@ export function validateAndSanitizeData(history: CutoffHistoryItem[]): CutoffHis
 
   valid.sort((a, b) => a.year - b.year);
 
-  // Deduplicate by year
   const map = new Map<number, CutoffHistoryItem>();
   for (const item of valid) {
     map.set(item.year, item);
@@ -71,28 +60,16 @@ export function validateAndSanitizeData(history: CutoffHistoryItem[]): CutoffHis
   return Array.from(map.values());
 }
 
-/**
- * Empirical Cumulative Distribution Function (ECDF)
- * Calculates true empirical probability: P(e >= requiredError)
- * using linear quantile interpolation over historical out-of-sample errors.
- */
 export function empiricalCDFProbability(requiredError: number, errors: number[]): number {
   if (!errors || errors.length === 0) return 0.5;
 
   const sortedErrors = [...errors].sort((a, b) => a - b);
   const count = sortedErrors.filter((e) => e >= requiredError).length;
   
-  // Empirical proportion
   const p = count / sortedErrors.length;
   return Math.min(0.99, Math.max(0.01, p));
 }
 
-/**
- * Collect Rolling Out-of-Sample Forecast Residual Errors
- * Executes rolling-origin backtesting:
- *   - Train 2022 -> Test 2023
- *   - Train 2022+2023 -> Test 2024
- */
 export function collectRollingResidualErrors(history: CutoffHistoryItem[]): {
   errors: number[];
   rmse: number;
@@ -112,7 +89,6 @@ export function collectRollingResidualErrors(history: CutoffHistoryItem[]): {
     const trainSet = history.slice(0, i);
     const testItem = history[i];
 
-    // Forecast using WLS on trainSet
     const maxYr = trainSet[trainSet.length - 1].year;
     const weights = trainSet.map((t) => Math.exp(-0.35 * (maxYr - t.year)));
     const sumW = weights.reduce((a, b) => a + b, 0);
@@ -133,7 +109,6 @@ export function collectRollingResidualErrors(history: CutoffHistoryItem[]): {
     const intercept = meanY - slope * meanT;
     const forecast = Math.max(1, Math.round(intercept + slope * testItem.year));
 
-    // Residual error: e = R_actual - R_predicted
     const err = testItem.closingRank - forecast;
     errors.push(err);
   }
@@ -146,16 +121,13 @@ export function collectRollingResidualErrors(history: CutoffHistoryItem[]): {
 }
 
 /**
- * Complete Forecasting & Probability Engine
- * 1. Forecasts next-cycle closing rank using Weighted Least Squares (WLS) regression.
- * 2. Uses Empirical ECDF for probability estimation when out-of-sample errors exist,
- *    falling back to Gaussian Error-Distribution model for small N.
- * 3. Reports prediction interval width alongside coverage to prevent over-wide intervals.
+ * Core Forecasting Engine for Target 2027-28 Admission Cycle
+ * Uses 4-Year Historical Data (2023-2026) to forecast 2027 closing cutoff ranks.
  */
 export function calculateAIPrediction(
   userRank: number,
   rawHistory: CutoffHistoryItem[],
-  targetYear: number = 2025
+  targetYear: number = 2027
 ): AIPredictionResult {
   const history = validateAndSanitizeData(rawHistory);
 
@@ -174,10 +146,9 @@ export function calculateAIPrediction(
     };
   }
 
-  // Single-year fallback
   if (history.length === 1) {
     const single = history[0];
-    const s_e = Math.max(40, single.closingRank * 0.08); // 8% error assumption
+    const s_e = Math.max(40, single.closingRank * 0.08);
     const z = (single.closingRank - userRank) / s_e;
     const prob = Math.round(normalCDF(z) * 100);
     const clampedProb = Math.min(99, Math.max(1, prob));
@@ -203,9 +174,9 @@ export function calculateAIPrediction(
     };
   }
 
-  // 1. Forecast Target Cutoff via Weighted Least Squares (WLS) Regression
+  // WLS Regression with 4-Year Exponential Time Decay (2023-2026)
   const maxYear = history[history.length - 1].year;
-  const lambda = 0.35; // Exponential time-decay parameter
+  const lambda = 0.35;
   const weights = history.map((item) => Math.exp(-lambda * (maxYear - item.year)));
   const sumW = weights.reduce((a, b) => a + b, 0);
 
@@ -227,7 +198,7 @@ export function calculateAIPrediction(
   const rawPredictedRank = beta0 + beta1 * targetYear;
   const predictedClosingRank = Math.max(1, Math.round(rawPredictedRank));
 
-  // 2. Collect Rolling Out-of-Sample Residual Errors
+  // Rolling Out-of-Sample Residual Errors
   const rollingRes = collectRollingResidualErrors(history);
 
   let ssRes = 0;
@@ -244,7 +215,7 @@ export function calculateAIPrediction(
   const residualStdError = Math.max(rollingRes.rmse, fitStdError);
   const rSquared = ssTot > 0 ? Math.max(0, Math.min(1, 1 - ssRes / ssTot)) : 0;
 
-  // 3. Generate Tight 90% Prediction Intervals
+  // 90% Prediction Interval for Target Year (2027)
   const dtTarget = targetYear - meanT;
   const sePred = residualStdError * Math.sqrt(1 + 1 / sumW + (den > 0 ? (dtTarget * dtTarget) / den : 0));
   const z90 = 1.645;
@@ -257,26 +228,23 @@ export function calculateAIPrediction(
     width: intervalWidth,
   };
 
-  // 4. Calculate Admission Probability
-  // Required error for admission: e = R_user - R_predicted
+  // Empirical ECDF / Gaussian Probability
   const requiredError = userRank - predictedClosingRank;
   let admissionProbability = 50;
   let probabilityModelType: "Empirical ECDF" | "Gaussian Error Model" = "Gaussian Error Model";
 
   if (rollingRes.errors.length >= 3) {
-    // Primary Model: Empirical Non-Parametric ECDF
     probabilityModelType = "Empirical ECDF";
     const ecdfProb = empiricalCDFProbability(requiredError, rollingRes.errors);
     admissionProbability = Math.round(ecdfProb * 100);
   } else {
-    // Fallback Model: Gaussian Error-Distribution Model
     probabilityModelType = "Gaussian Error Model";
     const zScore = (predictedClosingRank - userRank) / sePred;
     const gaussProb = normalCDF(zScore);
     admissionProbability = Math.min(99, Math.max(1, Math.round(gaussProb * 100)));
   }
 
-  // Risk Tier Classification
+  // Risk Classification
   let status: "Safe" | "Target" | "Reach" = "Reach";
   if (admissionProbability >= 75) {
     status = "Safe";
@@ -284,17 +252,16 @@ export function calculateAIPrediction(
     status = "Target";
   }
 
-  // Model Quality Confidence Score (0 - 100%)
-  const sampleScore = Math.min(40, history.length * 13.33);
+  // Confidence Score (0 - 100%)
+  const sampleScore = Math.min(40, history.length * 10); // 40 max for N=4
   const r2Score = rSquared * 30;
   const relErrorRatio = residualStdError / (meanY || 1);
   const stabilityScore = Math.max(0, 30 - relErrorRatio * 100);
   const confidenceScore = Math.min(98, Math.max(25, Math.round(sampleScore + r2Score + stabilityScore)));
 
-  // Trend Description Summary
   const direction = beta1 < 0 ? "tightening" : beta1 > 0 ? "expanding" : "stable";
   const annualChangePcnt = Math.abs((beta1 / (meanY || 1)) * 100).toFixed(1);
-  const trendSummary = `WLS Forecast (${probabilityModelType}): Cutoffs ${direction} by ~${annualChangePcnt}%/yr | Target ${targetYear} Est: ${predictedClosingRank.toLocaleString()} [Interval Width: ±${margin.toLocaleString()} ranks]`;
+  const trendSummary = `4-Yr WLS Forecast (2023-2026): Cutoffs ${direction} by ~${annualChangePcnt}%/yr | Est ${targetYear} Cutoff: ${predictedClosingRank.toLocaleString()} [Interval: ±${margin.toLocaleString()} ranks]`;
 
   return {
     predictedClosingRank,

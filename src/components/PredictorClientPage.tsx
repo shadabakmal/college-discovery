@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { TrendingUp, ChevronDown, Loader2, AlertCircle, Bot, Sparkles, Filter, ShieldCheck, Gauge } from "lucide-react";
+import { ChevronDown, Loader2, AlertCircle, Bot, Sparkles, Filter, ShieldCheck, Gauge } from "lucide-react";
 import CollegeCard from "@/components/CollegeCard";
 
 const EXAMS = ["JEE Main", "JEE Advanced", "NEET", "CAT", "CLAT", "CUET"];
@@ -77,11 +77,11 @@ export default function PredictorClientPage() {
       <div style={{ background: "linear-gradient(135deg, #0A1628, #1A2B4A)" }} className="py-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 bg-orange-500/20 text-orange-400 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4 border border-orange-500/30">
-            <Sparkles className="w-4 h-4" /> Calibrated WLS Regression Engine (90% Interval Bounds)
+            <Sparkles className="w-4 h-4" /> 🎯 2027-28 Admission Predictor (4-Year WLS & ECDF Model)
           </div>
           <h1 className="font-display text-4xl font-bold text-white mb-3">AI College Admission Predictor</h1>
           <p className="text-gray-300 mb-8">
-            Weighted Least Squares ML engine analyzing official JoSAA/NEET/CAT cutoff datasets (2022–2024) to predict 2025 admission probabilities & prediction intervals.
+            Analyzing 4-year historical cutoff datasets (2023–2026) using Weighted Least Squares (WLS) regression and empirical error distributions to forecast 2027–28 admission odds.
           </p>
 
           <div className="bg-white rounded-2xl p-6 shadow-2xl text-left">
@@ -142,12 +142,12 @@ export default function PredictorClientPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Running Calibrated ML Engine...
+                  Forecasting 2027-28 Admission Odds...
                 </>
               ) : (
                 <>
                   <Bot className="w-5 h-5" />
-                  Predict Admission Odds with Calibrated AI
+                  Predict 2027-28 Admission Odds
                 </>
               )}
             </button>
@@ -160,14 +160,13 @@ export default function PredictorClientPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h2 className="font-display text-2xl font-bold text-gray-900 mb-1">
-                🤖 AI Predicted {results.length} colleges for rank {rank}
+                🤖 AI Predicted {results.length} options for rank {rank} (2027–28 Session)
               </h2>
               <p className="text-gray-500 text-sm">
-                Evaluated using Weighted Least Squares (WLS) regression on official datasets ({exam} - {category}).
+                Evaluated using 4-Year WLS regression on official datasets ({exam} - {category}).
               </p>
             </div>
 
-            {/* AI Risk Filter Tabs */}
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm self-start">
               <span className="text-xs font-semibold text-gray-500 px-2 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5" /> Odds Filter:
@@ -209,7 +208,6 @@ export default function PredictorClientPage() {
 
                 return (
                   <div key={`${college.id}-${idx}`} className="relative flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition">
-                    {/* AI Probability Header Badge */}
                     <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-medium border-b border-gray-800">
                       <span className="flex items-center gap-1.5 text-orange-400 font-semibold">
                         <Bot className="w-4 h-4" /> Prob: {ai?.admissionProbability}%
@@ -226,11 +224,10 @@ export default function PredictorClientPage() {
 
                     <CollegeCard college={college} />
 
-                    {/* AI Prediction Interval & Model Metrics Footer */}
                     <div className="p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-700 space-y-1.5">
                       <div className="font-semibold text-gray-900 flex justify-between items-center">
                         <span>Course: <span className="text-orange-600">{college.matchedCourse}</span></span>
-                        <span className="text-gray-500 text-[11px]">Est. Cutoff: {ai?.predictedClosingRank?.toLocaleString()}</span>
+                        <span className="text-gray-500 text-[11px]">Est 2027 Cutoff: {ai?.predictedClosingRank?.toLocaleString()}</span>
                       </div>
                       
                       {ai?.predictionInterval && (

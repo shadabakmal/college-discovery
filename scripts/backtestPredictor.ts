@@ -1,8 +1,8 @@
 import { calculateAIPrediction, CutoffHistoryItem } from "../src/lib/aiPredictor";
 
 /**
- * Professional Rolling-Origin Backtesting & Out-of-Sample Evaluation Framework
- * Evaluates predictions using MAE, RMSE, MedAE, 90% Interval Coverage, and Average Interval Width.
+ * 4-Year Rolling Out-of-Sample Backtesting & Evaluation Framework for 2027 Target Cycle
+ * Trains on 2023-2025 data, predicts 2026 ground truth cutoffs, and forecasts target 2027 cutoffs.
  */
 
 interface DatasetEntry {
@@ -18,9 +18,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "IIT Dhanbad - CSE",
     data: [
-      { year: 2022, openingRank: 1950, closingRank: 2950 },
       { year: 2023, openingRank: 1800, closingRank: 2862 },
       { year: 2024, openingRank: 1750, closingRank: 2810 },
+      { year: 2025, openingRank: 1710, closingRank: 2760 },
+      { year: 2026, openingRank: 1680, closingRank: 2720 },
     ],
   },
   {
@@ -28,9 +29,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "IIT Madras - EE",
     data: [
-      { year: 2022, openingRank: 50, closingRank: 160 },
       { year: 2023, openingRank: 42, closingRank: 144 },
       { year: 2024, openingRank: 40, closingRank: 138 },
+      { year: 2025, openingRank: 38, closingRank: 132 },
+      { year: 2026, openingRank: 35, closingRank: 126 },
     ],
   },
   {
@@ -38,9 +40,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "IIT Delhi - CS",
     data: [
-      { year: 2022, openingRank: 32, closingRank: 125 },
       { year: 2023, openingRank: 29, closingRank: 115 },
       { year: 2024, openingRank: 27, closingRank: 108 },
+      { year: 2025, openingRank: 25, closingRank: 102 },
+      { year: 2026, openingRank: 22, closingRank: 98 },
     ],
   },
   {
@@ -48,9 +51,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "IIT Bombay - Mech",
     data: [
-      { year: 2022, openingRank: 220, closingRank: 1280 },
       { year: 2023, openingRank: 200, closingRank: 1200 },
       { year: 2024, openingRank: 190, closingRank: 1150 },
+      { year: 2025, openingRank: 180, closingRank: 1100 },
+      { year: 2026, openingRank: 170, closingRank: 1060 },
     ],
   },
   {
@@ -58,9 +62,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "NIT Trichy - ECE",
     data: [
-      { year: 2022, openingRank: 1300, closingRank: 3700 },
       { year: 2023, openingRank: 1200, closingRank: 3500 },
       { year: 2024, openingRank: 1150, closingRank: 3400 },
+      { year: 2025, openingRank: 1100, closingRank: 3310 },
+      { year: 2026, openingRank: 1060, closingRank: 3230 },
     ],
   },
   {
@@ -68,9 +73,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "NIT Surathkal - IT",
     data: [
-      { year: 2022, openingRank: 1600, closingRank: 3050 },
       { year: 2023, openingRank: 1500, closingRank: 2900 },
       { year: 2024, openingRank: 1450, closingRank: 2820 },
+      { year: 2025, openingRank: 1400, closingRank: 2740 },
+      { year: 2026, openingRank: 1360, closingRank: 2670 },
     ],
   },
   {
@@ -78,9 +84,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "AIIMS New Delhi - MBBS",
     data: [
-      { year: 2022, openingRank: 1, closingRank: 61 },
       { year: 2023, openingRank: 1, closingRank: 57 },
       { year: 2024, openingRank: 1, closingRank: 53 },
+      { year: 2025, openingRank: 1, closingRank: 49 },
+      { year: 2026, openingRank: 1, closingRank: 46 },
     ],
   },
   {
@@ -88,9 +95,10 @@ const sampleDatasets: DatasetEntry[] = [
     category: "General",
     course: "IIM Ahmedabad - MBA",
     data: [
-      { year: 2022, openingRank: 1, closingRank: 160 },
       { year: 2023, openingRank: 1, closingRank: 150 },
       { year: 2024, openingRank: 1, closingRank: 145 },
+      { year: 2025, openingRank: 1, closingRank: 140 },
+      { year: 2026, openingRank: 1, closingRank: 136 },
     ],
   },
 ];
@@ -104,7 +112,7 @@ function calculateMedian(arr: number[]): number {
 
 function runBacktest() {
   console.log("=========================================================================");
-  console.log("🧪 ROLLING-ORIGIN OUT-OF-SAMPLE BACKTESTING & EVALUATION TABLE");
+  console.log("🧪 4-YEAR ROLLING-ORIGIN OUT-OF-SAMPLE BACKTESTING & EVALUATION TABLE");
   console.log("=========================================================================\n");
 
   const errors: number[] = [];
@@ -117,33 +125,35 @@ function runBacktest() {
     "| Category".padEnd(11) +
     "| Course".padEnd(24) +
     "| Train End ".padEnd(12) +
-    "| Test Year ".padEnd(12) +
+    "| Test 2026 ".padEnd(12) +
     "| Predicted ".padEnd(12) +
     "| Actual ".padEnd(9) +
-    "| Error |"
+    "| Error | Est 2027 |"
   );
   console.log("--------------------------------------------------------------------------------------------------");
 
   for (const item of sampleDatasets) {
-    // Rolling split: Train on 2022-2023, Test on 2024
-    const trainSet = item.data.filter((d) => d.year < 2024);
-    const testItem = item.data.find((d) => d.year === 2024)!;
+    // Train on 2023-2025, test on 2026 ground truth
+    const trainSet = item.data.filter((d) => d.year < 2026);
+    const testItem = item.data.find((d) => d.year === 2026)!;
 
-    const result = calculateAIPrediction(testItem.closingRank, trainSet, 2024);
-    const predicted = result.predictedClosingRank;
-    const actual = testItem.closingRank;
-    const err = Math.abs(actual - predicted);
+    const result2026 = calculateAIPrediction(testItem.closingRank, trainSet, 2026);
+    const predicted2026 = result2026.predictedClosingRank;
+    const actual2026 = testItem.closingRank;
+    const err = Math.abs(actual2026 - predicted2026);
 
     errors.push(err);
-    intervalWidths.push(result.predictionInterval.width);
+    intervalWidths.push(result2026.predictionInterval.width);
 
-    // Baseline Naive Predictor (Latest Year 2023 Value)
     const naivePred = trainSet[trainSet.length - 1].closingRank;
-    naiveErrors.push(Math.abs(actual - naivePred));
+    naiveErrors.push(Math.abs(actual2026 - naivePred));
 
-    if (actual >= result.predictionInterval.lower && actual <= result.predictionInterval.upper) {
+    if (actual2026 >= result2026.predictionInterval.lower && actual2026 <= result2026.predictionInterval.upper) {
       intervalCoverageHits++;
     }
+
+    // Target 2027 Forecast using all 4 years (2023-2026)
+    const result2027 = calculateAIPrediction(testItem.closingRank, item.data, 2027);
 
     const trainEndYr = trainSet[trainSet.length - 1].year;
 
@@ -153,9 +163,10 @@ function runBacktest() {
       `| ${item.course.padEnd(22)} ` +
       `| ${trainEndYr.toString().padStart(10)} ` +
       `| ${testItem.year.toString().padStart(10)} ` +
-      `| ${predicted.toString().padStart(10)} ` +
-      `| ${actual.toString().padStart(7)} ` +
-      `| ${err.toString().padStart(5)} |`
+      `| ${predicted2026.toString().padStart(10)} ` +
+      `| ${actual2026.toString().padStart(7)} ` +
+      `| ${err.toString().padStart(5)} | ` +
+      `${result2027.predictedClosingRank.toString().padStart(8)} |`
     );
   }
 
@@ -172,7 +183,7 @@ function runBacktest() {
   const avgWidth = Math.round(intervalWidths.reduce((a, b) => a + b, 0) / n);
 
   console.log("\n=========================================");
-  console.log("MODEL BACKTEST & OUT-OF-SAMPLE EVALUATION");
+  console.log("MODEL BACKTEST & 2027 FORECAST EVALUATION");
   console.log("=========================================");
   console.log(`Test predictions count : ${n}`);
   console.log(`Model MAE              : ${modelMAE} ranks`);
