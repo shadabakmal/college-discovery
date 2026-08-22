@@ -9,13 +9,13 @@ export async function GET(request: Request) {
   const rankParam = searchParams.get("rank");
 
   if (!exam || !category || !rankParam) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    return NextResponse.json({ error: "Missing required fields: exam, category, rank" }, { status: 400 });
   }
 
   const userRank = parseInt(rankParam);
 
   try {
-    // Fetch all cutoff records matching exam and category across all historical years
+    // Fetch all cutoff records matching exam and category across historical years
     const allCutoffs = await prisma.cutoff.findMany({
       where: {
         exam: exam,
@@ -53,14 +53,14 @@ export async function GET(request: Request) {
       });
     }
 
-    // Run AI Model Prediction for each college course option
+    // Run 8-Phase AI WLS Model Prediction for each option
     const predictions = [];
 
     for (const [_, item] of grouped) {
-      const aiResult = calculateAIPrediction(userRank, item.history);
+      const aiResult = calculateAIPrediction(userRank, item.history, 2025);
 
-      // Only include options where admission probability is reasonable (>= 5%)
-      if (aiResult.admissionProbability >= 5) {
+      // Filter options with minimum admission probability threshold (>= 3%)
+      if (aiResult.admissionProbability >= 3) {
         const reviews = item.college.reviews || [];
         const totalReviews = reviews.length;
         const avgRating =

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { TrendingUp, ChevronDown, Loader2, AlertCircle, Bot, Sparkles, Filter } from "lucide-react";
+import { TrendingUp, ChevronDown, Loader2, AlertCircle, Bot, Sparkles, Filter, ShieldCheck, Gauge } from "lucide-react";
 import CollegeCard from "@/components/CollegeCard";
 
 const EXAMS = ["JEE Main", "JEE Advanced", "NEET", "CAT", "CLAT", "CUET"];
@@ -77,11 +77,11 @@ export default function PredictorClientPage() {
       <div style={{ background: "linear-gradient(135deg, #0A1628, #1A2B4A)" }} className="py-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 bg-orange-500/20 text-orange-400 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4 border border-orange-500/30">
-            <Sparkles className="w-4 h-4" /> AI-Powered 3-Year Historical Model
+            <Sparkles className="w-4 h-4" /> Calibrated WLS Regression Engine (90% Interval Bounds)
           </div>
           <h1 className="font-display text-4xl font-bold text-white mb-3">AI College Admission Predictor</h1>
           <p className="text-gray-300 mb-8">
-            Our machine learning model analyzes 3-year historical cutoff trends (2022-2024) to predict your admission probabilities for upcoming admission cycles.
+            Weighted Least Squares ML engine analyzing official JoSAA/NEET/CAT cutoff datasets (2022–2024) to predict 2025 admission probabilities & prediction intervals.
           </p>
 
           <div className="bg-white rounded-2xl p-6 shadow-2xl text-left">
@@ -142,12 +142,12 @@ export default function PredictorClientPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Running AI Multi-Year Model...
+                  Running Calibrated ML Engine...
                 </>
               ) : (
                 <>
                   <Bot className="w-5 h-5" />
-                  Predict Admission Odds with AI
+                  Predict Admission Odds with Calibrated AI
                 </>
               )}
             </button>
@@ -163,14 +163,14 @@ export default function PredictorClientPage() {
                 🤖 AI Predicted {results.length} colleges for rank {rank}
               </h2>
               <p className="text-gray-500 text-sm">
-                Evaluated against 3-year historical cutoffs for {exam} ({category} category).
+                Evaluated using Weighted Least Squares (WLS) regression on official datasets ({exam} - {category}).
               </p>
             </div>
 
             {/* AI Risk Filter Tabs */}
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm self-start">
               <span className="text-xs font-semibold text-gray-500 px-2 flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5" /> Odds:
+                <Filter className="w-3.5 h-3.5" /> Odds Filter:
               </span>
               {(["All", "Safe", "Target", "Reach"] as const).map((status) => (
                 <button
@@ -212,21 +212,38 @@ export default function PredictorClientPage() {
                     {/* AI Probability Header Badge */}
                     <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-medium border-b border-gray-800">
                       <span className="flex items-center gap-1.5 text-orange-400 font-semibold">
-                        <Bot className="w-4 h-4" /> AI Probability: {ai?.admissionProbability}%
+                        <Bot className="w-4 h-4" /> Prob: {ai?.admissionProbability}%
                       </span>
-                      <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${statusColor}`}>
-                        {ai?.status || "Predicting"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <Gauge className="w-3 h-3 text-emerald-400" /> Conf: {ai?.confidenceScore}%
+                        </span>
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${statusColor}`}>
+                          {ai?.status || "Predicting"}
+                        </span>
+                      </div>
                     </div>
 
                     <CollegeCard college={college} />
 
-                    {/* AI Trend & Course Detail Footer */}
+                    {/* AI Prediction Interval & Model Metrics Footer */}
                     <div className="p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-700 space-y-1.5">
                       <div className="font-semibold text-gray-900 flex justify-between items-center">
                         <span>Course: <span className="text-orange-600">{college.matchedCourse}</span></span>
                         <span className="text-gray-500 text-[11px]">Est. Cutoff: {ai?.predictedClosingRank?.toLocaleString()}</span>
                       </div>
+                      
+                      {ai?.predictionInterval && (
+                        <div className="flex items-center justify-between text-[11px] text-gray-600 bg-white px-2.5 py-1.5 rounded-lg border border-gray-200/60 font-mono">
+                          <span className="flex items-center gap-1 text-gray-500 font-sans font-medium">
+                            <ShieldCheck className="w-3.5 h-3.5 text-blue-500" /> 90% Predict Range:
+                          </span>
+                          <span className="font-bold text-gray-800">
+                            {ai.predictionInterval.lower.toLocaleString()} – {ai.predictionInterval.upper.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+
                       {ai?.trendSummary && (
                         <p className="text-[11px] text-gray-500 leading-tight italic">
                           💡 {ai.trendSummary}
