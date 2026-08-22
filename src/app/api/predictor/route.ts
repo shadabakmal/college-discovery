@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { calculateAIPrediction, CutoffHistoryItem } from "@/lib/aiPredictor";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,67 +15,92 @@ export async function GET(request: Request) {
   const userRank = parseInt(rankParam);
 
   try {
-    const predictions = await prisma.cutoff.findMany({
+    // Fetch all cutoff records matching exam and category across all historical years
+    const allCutoffs = await prisma.cutoff.findMany({
       where: {
         exam: exam,
         category: category,
-        closingRank: {
-          gte: userRank,
-        },
       },
       include: {
-        // 👇 FIX: Tell Prisma to grab reviews and courses too!
         college: {
           include: {
             reviews: true,
             courses: true,
-          }
+          },
         },
       },
       orderBy: {
-        closingRank: 'asc',
+        year: "asc",
       },
-      take: 20,
     });
 
-    const formattedData = predictions.map((cutoff) => {
-      // Calculate real-time reviews
-      const reviews = cutoff.college.reviews || [];
-      const totalReviews = reviews.length;
-      const avgRating = totalReviews > 0 
-        ? reviews.reduce((acc, rev) => acc + rev.rating, 0) / totalReviews 
-        : cutoff.college.rating || 0;
+    // Group cutoffs by collegeId + courseName
+    const grouped = new Map<string, { college: any; courseName: string; history: CutoffHistoryItem[] }>();
 
-      // Get minimum fee from courses
-      const courses = cutoff.college.courses || [];
-      const minFee = courses.length > 0 ? courses[0].firstYearFee : 0;
+    for (const record of allCutoffs) {
+      const key = `${record.collegeId}_${record.courseName}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          college: record.college,
+          courseName: record.courseName,
+          history: [],
+        });
+      }
+      grouped.get(key)!.history.push({
+        year: record.year,
+        openingRank: record.openingRank,
+        closingRank: record.closingRank,
+      });
+    }
 
-      return {
-        college: {
-          id: cutoff.college.id,
-          name: cutoff.college.name,
-          location: cutoff.college.location,
-          type: cutoff.college.type,
-          established: cutoff.college.established, // Send established year
-          ranking: cutoff.college.ranking,
-          imageUrl: cutoff.college.imageUrl,
-          placementRate: cutoff.college.placementRate,
-          avgCtc: cutoff.college.avgCtc,
-          // 👇 Send calculated stats to the frontend
-          rating: parseFloat(avgRating.toFixed(1)),
-          reviewCount: totalReviews,
-          minFee: minFee,
-        },
-        course: {
-          name: cutoff.courseName,
-        },
-        closingRank: cutoff.closingRank,
-      };
-    });
+    // Run AI Model Prediction for each college course option
+    const predictions = [];
 
-    return NextResponse.json({ data: formattedData });
+    for (const [_, item] of grouped) {
+      const aiResult = calculateAIPrediction(userRank, item.history);
+
+      // Only include options where admission probability is reasonable (>= 5%)
+      if (aiResult.admissionProbability >= 5) {
+        const reviews = item.college.reviews || [];
+        const totalReviews = reviews.length;
+        const avgRating =
+          totalReviews > 0
+            ? reviews.reduce((acc: number, rev: any) => acc + rev.rating, 0) / totalReviews
+            : item.college.rating || 0;
+
+        const courses = item.college.courses || [];
+        const minFee = courses.length > 0 ? courses[0].firstYearFee : 0;
+
+        predictions.push({
+          college: {
+            id: item.college.id,
+            name: item.college.name,
+            location: item.college.location,
+            type: item.college.type,
+            established: item.college.established,
+            ranking: item.college.ranking,
+            imageUrl: item.college.imageUrl,
+            placementRate: item.college.placementRate,
+            avgCtc: item.college.avgCtc,
+            rating: parseFloat(avgRating.toFixed(1)),
+            reviewCount: totalReviews,
+            minFee: minFee,
+          },
+          course: {
+            name: item.courseName,
+          },
+          closingRank: item.history[item.history.length - 1]?.closingRank || 0,
+          aiPrediction: aiResult,
+        });
+      }
+    }
+
+    // Sort predictions by admission probability descending
+    predictions.sort((a, b) => b.aiPrediction.admissionProbability - a.aiPrediction.admissionProbability);
+
+    return NextResponse.json({ data: predictions.slice(0, 30) });
   } catch (error) {
-    console.error("Predictor API Error:", error);
-    return NextResponse.json({ error: "Failed to fetch predictions" }, { status: 500 });
+    console.error("AI Predictor API Error:", error);
+    return NextResponse.json({ error: "Failed to calculate AI predictions" }, { status: 500 });
   }
 }

@@ -92,6 +92,7 @@ model Cutoff {
   college   College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
 
   @@index([exam, category, closingRank])
+  @@index([exam, category, courseName, year])
 }
 
 model Discussion {

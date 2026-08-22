@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { TrendingUp, ChevronDown, Loader2, AlertCircle } from "lucide-react";
+import { TrendingUp, ChevronDown, Loader2, AlertCircle, Bot, Sparkles, Filter } from "lucide-react";
 import CollegeCard from "@/components/CollegeCard";
 
 const EXAMS = ["JEE Main", "JEE Advanced", "NEET", "CAT", "CLAT", "CUET"];
@@ -15,6 +15,7 @@ export default function PredictorClientPage() {
   const [rank, setRank] = useState("");
   const [category, setCategory] = useState("General");
   const [results, setResults] = useState<any[] | null>(null);
+  const [filterStatus, setFilterStatus] = useState<"All" | "Safe" | "Target" | "Reach">("All");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,6 +55,7 @@ export default function PredictorClientPage() {
         },
         matchedCourse: cutoff.course.name,
         closingRank: cutoff.closingRank,
+        aiPrediction: cutoff.aiPrediction,
       }));
 
       setResults(formattedData);
@@ -65,14 +67,21 @@ export default function PredictorClientPage() {
     }
   };
 
+  const filteredResults = results ? results.filter((item) => {
+    if (filterStatus === "All") return true;
+    return item.aiPrediction?.status === filterStatus;
+  }) : [];
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <div style={{ background: "linear-gradient(135deg, #0A1628, #1A2B4A)" }} className="py-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="text-5xl mb-4">🎯</div>
-          <h1 className="font-display text-4xl font-bold text-white mb-3">College Rank Predictor</h1>
+          <div className="inline-flex items-center gap-2 bg-orange-500/20 text-orange-400 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4 border border-orange-500/30">
+            <Sparkles className="w-4 h-4" /> AI-Powered 3-Year Historical Model
+          </div>
+          <h1 className="font-display text-4xl font-bold text-white mb-3">AI College Admission Predictor</h1>
           <p className="text-gray-300 mb-8">
-            Enter your exam rank to discover colleges you're likely to get admission in based on historical cutoffs.
+            Our machine learning model analyzes 3-year historical cutoff trends (2022-2024) to predict your admission probabilities for upcoming admission cycles.
           </p>
 
           <div className="bg-white rounded-2xl p-6 shadow-2xl text-left">
@@ -133,12 +142,12 @@ export default function PredictorClientPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Analyzing Historical Data...
+                  Running AI Multi-Year Model...
                 </>
               ) : (
                 <>
-                  <TrendingUp className="w-5 h-5" />
-                  Predict My Colleges
+                  <Bot className="w-5 h-5" />
+                  Predict Admission Odds with AI
                 </>
               )}
             </button>
@@ -148,35 +157,85 @@ export default function PredictorClientPage() {
 
       {results !== null && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="mb-8">
-            <h2 className="font-display text-2xl font-bold text-gray-900 mb-1">
-              {results.length} colleges predicted for rank {rank}
-            </h2>
-            <p className="text-gray-500 text-sm">
-              Based on historical {exam} closing ranks for {category} category.
-            </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="font-display text-2xl font-bold text-gray-900 mb-1">
+                🤖 AI Predicted {results.length} colleges for rank {rank}
+              </h2>
+              <p className="text-gray-500 text-sm">
+                Evaluated against 3-year historical cutoffs for {exam} ({category} category).
+              </p>
+            </div>
+
+            {/* AI Risk Filter Tabs */}
+            <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm self-start">
+              <span className="text-xs font-semibold text-gray-500 px-2 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5" /> Odds:
+              </span>
+              {(["All", "Safe", "Target", "Reach"] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    filterStatus === status
+                      ? "bg-gray-900 text-white shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {results.length === 0 ? (
+          {filteredResults.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm max-w-2xl mx-auto">
-              <div className="text-5xl mb-4">📉</div>
-              <h3 className="font-display text-2xl font-bold text-gray-900 mb-2">No guaranteed matches found</h3>
+              <div className="text-5xl mb-4">🤖</div>
+              <h3 className="font-display text-2xl font-bold text-gray-900 mb-2">No matching options for filter "{filterStatus}"</h3>
               <p className="text-gray-500 max-w-md mx-auto">
-                Based on historical data in our database, this rank might be tough for the top-tier institutions. Try adjusting your category or exploring state-level exams.
+                Try switching the risk odds filter to "All" or exploring different category options.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {results.map((college, idx) => (
-                <div key={`${college.id}-${idx}`} className="relative group">
-                  <CollegeCard college={college} />
-                  <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-center z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="bg-gray-900/90 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-xl backdrop-blur-sm text-center max-w-[85%]">
-                      Qualifies for:<br /> <span className="text-orange-400">{college.matchedCourse}</span> <br />(Closed at {college.closingRank})
-                    </span>
+              {filteredResults.map((college, idx) => {
+                const ai = college.aiPrediction;
+                const statusColor =
+                  ai?.status === "Safe"
+                    ? "bg-green-500 text-white"
+                    : ai?.status === "Target"
+                    ? "bg-amber-500 text-white"
+                    : "bg-red-500 text-white";
+
+                return (
+                  <div key={`${college.id}-${idx}`} className="relative flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition">
+                    {/* AI Probability Header Badge */}
+                    <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-medium border-b border-gray-800">
+                      <span className="flex items-center gap-1.5 text-orange-400 font-semibold">
+                        <Bot className="w-4 h-4" /> AI Probability: {ai?.admissionProbability}%
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${statusColor}`}>
+                        {ai?.status || "Predicting"}
+                      </span>
+                    </div>
+
+                    <CollegeCard college={college} />
+
+                    {/* AI Trend & Course Detail Footer */}
+                    <div className="p-4 bg-gray-50 border-t border-gray-100 text-xs text-gray-700 space-y-1.5">
+                      <div className="font-semibold text-gray-900 flex justify-between items-center">
+                        <span>Course: <span className="text-orange-600">{college.matchedCourse}</span></span>
+                        <span className="text-gray-500 text-[11px]">Est. Cutoff: {ai?.predictedClosingRank?.toLocaleString()}</span>
+                      </div>
+                      {ai?.trendSummary && (
+                        <p className="text-[11px] text-gray-500 leading-tight italic">
+                          💡 {ai.trendSummary}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
