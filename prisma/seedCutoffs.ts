@@ -43,9 +43,6 @@ const baseCutoffs = [
 
 async function main() {
   console.log('🚀 Starting multi-year cutoff seeding (2022, 2023, 2024)...');
-  
-  // Wipe old cutoff data to prevent duplicates
-  await prisma.cutoff.deleteMany();
 
   let successCount = 0;
 
@@ -56,8 +53,21 @@ async function main() {
 
     if (college) {
       for (const item of group.cutoffs) {
-        await prisma.cutoff.create({
-          data: {
+        await prisma.cutoff.upsert({
+          where: {
+            collegeId_exam_courseName_category_year: {
+              collegeId: college.id,
+              exam: group.exam,
+              courseName: group.courseName,
+              category: group.category,
+              year: item.year
+            }
+          },
+          update: {
+            openingRank: item.openingRank,
+            closingRank: item.closingRank
+          },
+          create: {
             exam: group.exam,
             category: group.category,
             courseName: group.courseName,
@@ -74,8 +84,8 @@ async function main() {
       console.log(`⚠️ FAILED: Could not find "${group.collegeName}" in database.`);
     }
   }
-  
-  console.log(`\n🎉 Multi-year Seeding Complete! Added ${successCount} cutoff records across 2022-2024.`);
+
+  console.log(`\n🎉 Multi-year Seeding Complete! Processed ${successCount} cutoffs.`);
 }
 
 main()
