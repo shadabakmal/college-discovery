@@ -1,15 +1,22 @@
 import { calculateAIPrediction, CutoffHistoryItem } from "../src/lib/aiPredictor";
 
 /**
- * Empirical Backtesting & Calibration Verification Suite
- * 1. Evaluates rolling forecast error residuals (e_i = R_actual - R_predicted).
- * 2. Verifies exact 50.0% probability midpoint calibration at R_user = R_predicted.
- * 3. Measures prediction interval coverage and Mean Absolute Error (MAE).
+ * Professional Rolling-Origin Backtesting & Out-of-Sample Evaluation Framework
+ * Evaluates predictions using MAE, RMSE, MedAE, 90% Interval Coverage, and Average Interval Width.
  */
 
-const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
+interface DatasetEntry {
+  exam: string;
+  category: string;
+  course: string;
+  data: CutoffHistoryItem[];
+}
+
+const sampleDatasets: DatasetEntry[] = [
   {
-    course: "IIT Dhanbad - CSE (General)",
+    exam: "JEE Advanced",
+    category: "General",
+    course: "IIT Dhanbad - CSE",
     data: [
       { year: 2022, openingRank: 1950, closingRank: 2950 },
       { year: 2023, openingRank: 1800, closingRank: 2862 },
@@ -17,7 +24,9 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
     ],
   },
   {
-    course: "IIT Madras - EE (General)",
+    exam: "JEE Advanced",
+    category: "General",
+    course: "IIT Madras - EE",
     data: [
       { year: 2022, openingRank: 50, closingRank: 160 },
       { year: 2023, openingRank: 42, closingRank: 144 },
@@ -25,7 +34,9 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
     ],
   },
   {
-    course: "IIT Delhi - CS (General)",
+    exam: "JEE Advanced",
+    category: "General",
+    course: "IIT Delhi - CS",
     data: [
       { year: 2022, openingRank: 32, closingRank: 125 },
       { year: 2023, openingRank: 29, closingRank: 115 },
@@ -33,7 +44,9 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
     ],
   },
   {
-    course: "IIT Bombay - Mech (General)",
+    exam: "JEE Advanced",
+    category: "General",
+    course: "IIT Bombay - Mech",
     data: [
       { year: 2022, openingRank: 220, closingRank: 1280 },
       { year: 2023, openingRank: 200, closingRank: 1200 },
@@ -41,7 +54,9 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
     ],
   },
   {
-    course: "NIT Trichy - ECE (General)",
+    exam: "JEE Main",
+    category: "General",
+    course: "NIT Trichy - ECE",
     data: [
       { year: 2022, openingRank: 1300, closingRank: 3700 },
       { year: 2023, openingRank: 1200, closingRank: 3500 },
@@ -49,7 +64,9 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
     ],
   },
   {
-    course: "NIT Surathkal - IT (General)",
+    exam: "JEE Main",
+    category: "General",
+    course: "NIT Surathkal - IT",
     data: [
       { year: 2022, openingRank: 1600, closingRank: 3050 },
       { year: 2023, openingRank: 1500, closingRank: 2900 },
@@ -57,7 +74,9 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
     ],
   },
   {
-    course: "AIIMS New Delhi - MBBS (General)",
+    exam: "NEET",
+    category: "General",
+    course: "AIIMS New Delhi - MBBS",
     data: [
       { year: 2022, openingRank: 1, closingRank: 61 },
       { year: 2023, openingRank: 1, closingRank: 57 },
@@ -65,7 +84,9 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
     ],
   },
   {
-    course: "IIM Ahmedabad - MBA (General)",
+    exam: "CAT",
+    category: "General",
+    course: "IIM Ahmedabad - MBA",
     data: [
       { year: 2022, openingRank: 1, closingRank: 160 },
       { year: 2023, openingRank: 1, closingRank: 150 },
@@ -74,57 +95,97 @@ const sampleDatasets: { course: string; data: CutoffHistoryItem[] }[] = [
   },
 ];
 
+function calculateMedian(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
 function runBacktest() {
-  console.log("========================================================================");
-  console.log("🧪 EMPIRICAL OUTCOME-DERIVED PROBABILITY BACKTEST SUITE");
-  console.log("========================================================================\n");
+  console.log("=========================================================================");
+  console.log("🧪 ROLLING-ORIGIN OUT-OF-SAMPLE BACKTESTING & EVALUATION TABLE");
+  console.log("=========================================================================\n");
 
-  let wlsTotalError = 0;
-  let naiveTotalError = 0;
+  const errors: number[] = [];
+  const naiveErrors: number[] = [];
+  const intervalWidths: number[] = [];
   let intervalCoverageHits = 0;
-  const count = sampleDatasets.length;
 
-  console.log("Course Name | Actual 2024 | Forecast R̂ | Prob @ Cutoff | MAE Error | 90% Interval Bounds");
+  console.log(
+    "| Exam".padEnd(14) +
+    "| Category".padEnd(11) +
+    "| Course".padEnd(24) +
+    "| Train End ".padEnd(12) +
+    "| Test Year ".padEnd(12) +
+    "| Predicted ".padEnd(12) +
+    "| Actual ".padEnd(9) +
+    "| Error |"
+  );
   console.log("--------------------------------------------------------------------------------------------------");
 
   for (const item of sampleDatasets) {
-    const trainData = item.data.filter((d) => d.year < 2024);
-    const actual2024 = item.data.find((d) => d.year === 2024)!.closingRank;
+    // Rolling split: Train on 2022-2023, Test on 2024
+    const trainSet = item.data.filter((d) => d.year < 2024);
+    const testItem = item.data.find((d) => d.year === 2024)!;
 
-    // 1. Forecast 2024 Cutoff
-    const result = calculateAIPrediction(actual2024, trainData, 2024);
-    const forecastRank = result.predictedClosingRank;
-    const error = Math.abs(actual2024 - forecastRank);
-    wlsTotalError += error;
+    const result = calculateAIPrediction(testItem.closingRank, trainSet, 2024);
+    const predicted = result.predictedClosingRank;
+    const actual = testItem.closingRank;
+    const err = Math.abs(actual - predicted);
 
-    // Naive error
-    const naivePred = trainData[trainData.length - 1].closingRank;
-    naiveTotalError += Math.abs(actual2024 - naivePred);
+    errors.push(err);
+    intervalWidths.push(result.predictionInterval.width);
 
-    // 2. Verify Exact Midpoint Calibration: P(Admission) when userRank = forecastRank
-    const midpointTest = calculateAIPrediction(forecastRank, trainData, 2024);
-    const midProb = midpointTest.admissionProbability;
+    // Baseline Naive Predictor (Latest Year 2023 Value)
+    const naivePred = trainSet[trainSet.length - 1].closingRank;
+    naiveErrors.push(Math.abs(actual - naivePred));
 
-    const inInterval = actual2024 >= result.predictionInterval.lower && actual2024 <= result.predictionInterval.upper;
-    if (inInterval) intervalCoverageHits++;
+    if (actual >= result.predictionInterval.lower && actual <= result.predictionInterval.upper) {
+      intervalCoverageHits++;
+    }
+
+    const trainEndYr = trainSet[trainSet.length - 1].year;
 
     console.log(
-      `${item.course.padEnd(31)} | ${actual2024.toString().padStart(11)} | ${forecastRank.toString().padStart(10)} | ${midProb.toString().padStart(11)}% | ${error.toString().padStart(9)} | [${result.predictionInterval.lower} - ${result.predictionInterval.upper}]`
+      `| ${item.exam.padEnd(12)} ` +
+      `| ${item.category.padEnd(9)} ` +
+      `| ${item.course.padEnd(22)} ` +
+      `| ${trainEndYr.toString().padStart(10)} ` +
+      `| ${testItem.year.toString().padStart(10)} ` +
+      `| ${predicted.toString().padStart(10)} ` +
+      `| ${actual.toString().padStart(7)} ` +
+      `| ${err.toString().padStart(5)} |`
     );
   }
 
-  const wlsMAE = Math.round(wlsTotalError / count);
-  const naiveMAE = Math.round(naiveTotalError / count);
-  const coverageRate = ((intervalCoverageHits / count) * 100).toFixed(1);
+  const n = errors.length;
+  const modelMAE = Math.round(errors.reduce((a, b) => a + b, 0) / n);
+  const baselineMAE = Math.round(naiveErrors.reduce((a, b) => a + b, 0) / n);
+  const improvementPcnt = (((baselineMAE - modelMAE) / baselineMAE) * 100).toFixed(1);
 
-  console.log("\n========================================================================");
-  console.log("📊 EMPIRICAL PROBABILITY CALIBRATION VERIFICATION SUMMARY");
-  console.log("========================================================================");
-  console.log(`• Midpoint Calibration   : 50.0% probability at userRank = R̂_target (Validated)`);
-  console.log(`• WLS Forecast MAE       : ${wlsMAE} ranks error (vs Baseline ${naiveMAE})`);
-  console.log(`• 90% Interval Coverage  : ${coverageRate}% hit rate`);
-  console.log(`• Error Distribution     : Gaussian Error CDF (1 - Φ((R_user - R̂_target)/s_e))`);
-  console.log("========================================================================\n");
+  const ssErr = errors.reduce((sum, e) => sum + e * e, 0);
+  const rmse = Math.round(Math.sqrt(ssErr / n));
+  const medAE = calculateMedian(errors);
+
+  const coveragePcnt = ((intervalCoverageHits / n) * 100).toFixed(1);
+  const avgWidth = Math.round(intervalWidths.reduce((a, b) => a + b, 0) / n);
+
+  console.log("\n=========================================");
+  console.log("MODEL BACKTEST & OUT-OF-SAMPLE EVALUATION");
+  console.log("=========================================");
+  console.log(`Test predictions count : ${n}`);
+  console.log(`Model MAE              : ${modelMAE} ranks`);
+  console.log(`Baseline MAE           : ${baselineMAE} ranks`);
+  console.log(`Improvement            : ${improvementPcnt}%`);
+  console.log("");
+  console.log(`RMSE                   : ${rmse} ranks`);
+  console.log(`Median Absolute Error  : ${medAE} ranks`);
+  console.log("");
+  console.log(`90% Interval Coverage  : ${coveragePcnt}%`);
+  console.log(`Avg Interval Width     : ${avgWidth} ranks`);
+  console.log("=========================================\n");
+  console.log("⚠️ Note: Results are based on the current historical dataset and should be interpreted as preliminary until evaluated on a substantially larger rolling out-of-sample dataset.");
 }
 
 runBacktest();
